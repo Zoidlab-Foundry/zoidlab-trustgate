@@ -13,6 +13,7 @@ import database as db
 import entitlements
 import policy_engine
 import exporter
+import envelope
 import seed_policies
 from auth import session, owner_of, require_pro, entitlement
 
@@ -179,6 +180,7 @@ class TestBody(BaseModel):
     project_id: Optional[str] = None
     request: ActionRequest
     save: Optional[bool] = True
+    correlation_id: Optional[str] = None    # ties the decision to a calling run/trace (§6.4)
 
 
 @app.post("/api/test")
@@ -186,7 +188,7 @@ def run_test(body: TestBody, request: Request, owner: str = Depends(require_owne
     """Evaluate a proposed action against all active policies in a project."""
     policies = db.list_policies(owner_of(request), project_id=body.project_id, status="active")
     req = body.request.model_dump()
-    result = policy_engine.evaluate(policies, req)
+    result = policy_engine.evaluate(policies, req, correlation_id=body.correlation_id)
     if body.save:
         db.log_test(body.project_id, None, req, result, owner)
         if result["decision"] in ("blocked", "warn"):
@@ -268,15 +270,19 @@ def project_audit(pid: str, request: Request, owner: str = Depends(require_owner
     return {"audit": db.audit_for(pid)}
 
 
+def _wrapped(proj, policies, owner):
+    payload = exporter.to_package(proj, policies)
+    return envelope.wrap("trustgate", "policy_bundle", (proj or {}).get("id") or "all",
+                         "1.0.0", payload, nyquest_user_id=owner)
+
+
 @app.get("/api/export/json")
 def export_json(request: Request, project_id: Optional[str] = None, owner: str = Depends(require_owner)):
     proj = db.get_project(project_id, owner) if project_id else None
-    policies = db.list_policies(owner, project_id=project_id)
-    return exporter.to_package(proj, policies)
+    return _wrapped(proj, db.list_policies(owner, project_id=project_id), owner)
 
 
 @app.get("/api/export/yaml")
 def export_yaml(request: Request, project_id: Optional[str] = None, owner: str = Depends(require_owner)):
     proj = db.get_project(project_id, owner) if project_id else None
-    policies = db.list_policies(owner, project_id=project_id)
-    return PlainTextResponse(exporter.to_yaml(exporter.to_package(proj, policies)))
+    return PlainTextResponse(exporter.to_yaml(_wrapped(proj, db.list_policies(owner, project_id=project_id), owner)))

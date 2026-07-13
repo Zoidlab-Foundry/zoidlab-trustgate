@@ -6,6 +6,9 @@ a clear decision with reasons and a recommended action. Rule checks are concrete
 (regex secret/PII detection via risk_scanner, model allow/deny lists, approval triggers,
 citation requirements, cost limits) — no fabricated scoring.
 """
+import uuid
+import hashlib
+import datetime
 import risk_scanner
 
 _ENFORCE_ORDER = {"monitor": 0, "warn": 1, "require_approval": 2, "block": 3}
@@ -104,8 +107,43 @@ def _recommend(decision, matched, req):
     return "Review the matched policies and adjust the request to comply."
 
 
-def evaluate(policies, req):
-    """policies: list of active policy dicts. req: the proposed action. Returns a decision."""
+def bundle_version(policies):
+    """A deterministic version id for the active policy set — the 'policy bundle version'
+    (§6.4). Changes whenever a policy's id/version/enforcement changes."""
+    active = sorted(
+        f"{p.get('id')}:{p.get('version', '1.0.0')}:{p.get('enforcement_mode', 'warn')}:{p.get('status', 'active')}"
+        for p in policies if p.get("status") in (None, "active"))
+    h = hashlib.sha256("|".join(active).encode()).hexdigest()[:10]
+    return f"bundle_{len(active)}_{h}"
+
+
+def _obligations(decision, matched):
+    """Actions the enforcement point must perform even when not blocked (§6.4)."""
+    obs = set()
+    joined = " ".join(r.lower() for m in matched for r in m["reasons"])
+    if "secret" in joined:
+        obs.add("redact_secrets")
+    if "citation" in joined:
+        obs.add("require_citations")
+    if decision == "require_approval":
+        obs.add("require_approval")
+    for m in matched:
+        for rule in (m["policy"].get("rules") or []):
+            if rule.get("type") == "logging":
+                obs.add("log_decision")
+    return sorted(obs)
+
+
+def evaluate(policies, req, correlation_id=None):
+    """policies: list of active policy dicts. req: the proposed action. Returns a canonical
+    TrustGate decision (blueprint §6.4)."""
+    now = datetime.datetime.utcnow()
+    base = {
+        "decision_id": "dec_" + uuid.uuid4().hex[:12],
+        "policy_bundle_version": bundle_version(policies),
+        "correlation_id": correlation_id or ("corr_" + uuid.uuid4().hex[:12]),
+        "expires_at": (now + datetime.timedelta(minutes=5)).isoformat() + "Z",
+    }
     matched = []
     for pol in policies:
         if pol.get("status") not in (None, "active"):
@@ -115,8 +153,8 @@ def evaluate(policies, req):
             matched.append({"policy": pol, "reasons": reasons})
 
     if not matched:
-        return {"decision": "allow", "risk_level": "low", "matched_policies": [],
-                "reasons": ["No policy matched — this action is allowed."],
+        return {**base, "decision": "allow", "risk_level": "low", "matched_policies": [],
+                "reasons": ["No policy matched — this action is allowed."], "obligations": [],
                 "recommended_action": "None. This action complies with your active policies.",
                 "rule_hits": []}
 
@@ -127,7 +165,8 @@ def evaluate(policies, req):
                key=lambda r: _RISK_ORDER.get(r, 1))
     reasons = [r for m in matched for r in m["reasons"]]
     names = [m["policy"]["name"] for m in matched]
-    return {"decision": decision, "risk_level": risk, "matched_policies": names, "reasons": reasons,
+    return {**base, "decision": decision, "risk_level": risk, "matched_policies": names, "reasons": reasons,
+            "obligations": _obligations(decision, matched),
             "recommended_action": _recommend(decision, matched, req),
             "rule_hits": [{"policy": m["policy"]["name"], "enforcement": m["policy"].get("enforcement_mode"),
                            "reasons": m["reasons"]} for m in matched]}
