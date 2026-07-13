@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 
 const HOOKS = [
-  { name: "ZoidLab Workflow Builder", desc: "Enforce these policies on every workflow node run.", href: "https://builder.zoidlab.ai" },
+  { name: "ZoidLab Workflow Builder", desc: "LIVE — drop a TrustGate Policy node into a workflow to allow/block actions against these policies.", href: "https://builder.zoidlab.ai" },
   { name: "ZoidLab RAG Builder", desc: "Apply the RAG-source & citation policies to knowledge bases.", href: "https://rag.zoidlab.ai" },
   { name: "ZoidLab MemoryMaker", desc: "Gate high-risk memory writes with the approval policy.", href: "https://memorymaker.zoidlab.ai" },
   { name: "ZoidLab Prompter", desc: "Check prompts against safety policies before deploy.", href: "https://prompter.zoidlab.ai" },
@@ -31,7 +31,7 @@ export default function Deploy() {
               </div>
             ))}
           </div>
-          <p className="mt-2 text-[11px] text-faint">Enforcement hooks call TrustGate's <code>/api/test</code> from each app — integration wiring lands with the cross-app hooks phase.</p>
+          <p className="mt-2 text-[11px] text-faint">The Workflow Builder integration is <b className="text-vi">live</b> — its <b>TrustGate Policy</b> node calls <code>/api/test</code> to allow/block actions mid-workflow against your policies. Other apps use the same endpoint.</p>
           <h2 className="mb-3 mt-6 text-[15px] font-semibold">Export</h2>
           <div className="flex flex-wrap gap-2">
             <a href={api.exportJsonUrl(pid || undefined)} target="_blank" rel="noopener" className="rounded-lg bg-vi px-4 py-2 text-[13px] font-semibold text-white hover:opacity-90">Download JSON package</a>
