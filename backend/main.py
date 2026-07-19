@@ -9,7 +9,7 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from typing import Optional, Any, List
 
-import database as db
+import db_pg as db
 import entitlements
 import policy_engine
 import exporter

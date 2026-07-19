@@ -1,5 +1,5 @@
 """Seed a public demo policy project + policies (owner NULL = visible to everyone)."""
-import database as db
+import db_pg as db
 
 
 def run():
@@ -7,12 +7,13 @@ def run():
         return 0
     now = db.now_iso()
     pid = db.new_id("proj")
-    with db._conn() as c:
+    with db.admin_conn() as c:
         c.execute("""INSERT INTO policy_projects (id,owner_user_id,name,slug,description,status,risk_level,icon,accent,created_at,updated_at)
-                     VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                   (pid, None, "Production Guardrails", db._slug("Production Guardrails"),
                    "Baseline governance for production AI: no secrets, approved models, PII handling, approvals.",
                    "active", "high", "⛨", "#7c5cfc", now, now))
+        c.commit()
 
     POLICIES = [
         ("No secrets in prompts", "prompt_safety", "block", "high",
@@ -43,11 +44,12 @@ def run():
          "Every production model/prompt call is logged for audit.",
          [{"type": "logging"}], {"environment": ["production"]}),
     ]
-    with db._conn() as c:
+    with db.admin_conn() as c:
         for name, cat, mode, risk, desc, rules, applies in POLICIES:
             c.execute("""INSERT INTO policies (id,project_id,owner_user_id,name,slug,description,category,status,risk_level,
                          rules,enforcement_mode,applies_to,version,created_at,updated_at)
-                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                       (db.new_id("pol"), pid, None, name, db._slug(name), desc, cat, "active", risk,
                        db._j(rules), mode, db._j(applies), "1.0.0", now, now))
+        c.commit()
     return len(POLICIES)
