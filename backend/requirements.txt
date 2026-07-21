@@ -4,3 +4,5 @@ PyJWT==2.10.1
 pydantic==2.10.4
 psycopg[binary]==3.2.3
 psycopg-pool==3.2.4
+
+foundry-common @ git+https://github.com/Zoidlab-Foundry/foundry-common@v0.1.1
