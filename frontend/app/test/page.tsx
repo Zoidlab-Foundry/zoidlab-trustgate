@@ -46,7 +46,7 @@ export default function TestPage() {
             {f.context_type === "rag" && <label className="flex items-center gap-2 text-[12px] text-dim"><input type="checkbox" checked={!!f.rag_cited} onChange={(e) => setF({ ...f, rag_cited: e.target.checked })} /> cited</label>}
             <label className="flex items-center gap-2 text-[12px] text-dim"><input type="checkbox" checked={f.memory_write_risk === "high"} onChange={(e) => setF({ ...f, memory_write_risk: e.target.checked ? "high" : undefined })} /> high-risk memory write</label>
           </div>
-          <button onClick={run} disabled={busy} className="mt-2 w-full rounded-lg bg-vi px-4 py-2 text-[13px] font-semibold text-white hover:opacity-90 disabled:opacity-50">{busy ? "Checking…" : "Check policy"}</button>
+          <button data-assist="run-test" onClick={run} disabled={busy} className="mt-2 w-full rounded-lg bg-vi px-4 py-2 text-[13px] font-semibold text-white hover:opacity-90 disabled:opacity-50">{busy ? "Checking…" : "Check policy"}</button>
         </div>
 
         <div>

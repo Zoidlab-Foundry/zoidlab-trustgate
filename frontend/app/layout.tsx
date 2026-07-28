@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AssistantPanel } from "@foundry/ui";
 import TrustGateNav from "../components/TrustGateNav";
 import FoundryAccessGate from "../components/FoundryAccessGate";
 
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="antialiased min-h-screen bg-bg text-ink">
         <TrustGateNav />
+        <AssistantPanel app="TrustGate" />
         <main className="mx-auto w-full max-w-[1320px] px-5">
           <FoundryAccessGate packageLabel="Foundry Package 06">{children}</FoundryAccessGate>
         </main>

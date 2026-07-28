@@ -21,7 +21,7 @@ export default function Policies() {
     <div className="py-8">
       <div className="flex items-center justify-between">
         <div><h1 className="text-[22px] font-semibold">Policies</h1><p className="mt-1 text-[13px] text-dim">Define the rules AI actions must comply with. Each policy has an enforcement mode.</p></div>
-        <button onClick={() => setAdding(true)} className="rounded-lg bg-vi px-4 py-2 text-[13px] font-semibold text-white hover:opacity-90">New policy</button>
+        <button data-assist="new-policy" onClick={() => setAdding(true)} className="rounded-lg bg-vi px-4 py-2 text-[13px] font-semibold text-white hover:opacity-90">New policy</button>
       </div>
       <div className="mt-5 space-y-2">
         {pols.map((p) => (

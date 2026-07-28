@@ -29,6 +29,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="ZoidLab TrustGate API", lifespan=lifespan)
 
+from foundry_common import assistant
+from assistant_manifest import MANIFEST
+app.include_router(assistant.make_router(MANIFEST))
+
 
 def require_owner(request: Request):
     o = require_pro(request)
