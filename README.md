@@ -16,7 +16,9 @@ fabricated scoring.
 
 ## Stack
 - Frontend: Next.js 15, React 19, TypeScript, TailwindCSS (dark), reusable Foundry Pro gate.
-- Backend: FastAPI, SQLite (Postgres-portable), every write + check behind `require_pro`.
+- Backend: FastAPI, Postgres with per-tenant FORCE row-level security (every query runs as the
+  non-superuser `app_rls` role keyed on `app.current_owner`, so tenant isolation is enforced by
+  the database, not by application code); every write + check behind `require_pro`.
 - Auth: shared ZoidLab / Nyquest SSO cookie + Foundry entitlement (frontend + backend enforced).
 
 ## Local
