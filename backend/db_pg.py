@@ -247,7 +247,7 @@ def create_policy(data, owner):
 
 def update_policy(pid, data, owner):
     p = get_policy(pid, owner)
-    if not p or (p.get("owner_user_id") and p["owner_user_id"] != owner and not is_admin(owner)):
+    if not p or (p.get("owner_user_id") != owner and not is_admin(owner)):
         return None
     fields, args = [], []
     for k in ("name", "description", "category", "status", "risk_level", "enforcement_mode", "project_id"):
@@ -345,9 +345,12 @@ def list_approvals(viewer=None, status=None):
 
 def resolve_approval(aid, status, reviewer, notes=None):
     with _tx(None) as cur:
-        cur.execute("SELECT id FROM policy_approvals WHERE id=%s", (aid,))
+        cur.execute("SELECT id, requested_by FROM policy_approvals WHERE id=%s", (aid,))
         r = cur.fetchone()
-        if not r:
+        # policy_approvals has no RLS, so scope the write here: only the tenant that
+        # raised the request (or an admin) may resolve it. Unconditional compare, so a
+        # NULL/blank requested_by never matches a real reviewer.
+        if not r or (r["requested_by"] != reviewer and not is_admin(reviewer)):
             return None
         cur.execute("UPDATE policy_approvals SET status=%s, reviewer_id=%s, reviewer_notes=%s, reviewed_at=%s WHERE id=%s",
                     (status, reviewer, notes, now_iso(), aid))
