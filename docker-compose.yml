@@ -4,9 +4,8 @@
 # (foundry owns the schema, app_rls is the NOBYPASSRLS role every request runs as),
 # then the backend opens its psycopg pool against it at import. Point
 # DATABASE_URL / DATABASE_URL_ADMIN elsewhere to use the shared Foundry Postgres.
-# Note: the backend image's CMD hard-codes --port 8600, so the container port stays
-# 8600 while the host keeps TrustGate's canonical 8700. The frontend's own
-# `next start -p 3600` is what fixes its port at 3600.
+# Note: the backend image binds TrustGate's canonical 8700 inside the container and the
+# frontend's `next start -p 3700` fixes its port at 3700, so both map 1:1 to the host.
 services:
   backend:
     build: ./backend
@@ -20,7 +19,7 @@ services:
       - MOCK_PRO_USER=${MOCK_PRO_USER:-false}
       - TRUSTGATE_ADMINS=${TRUSTGATE_ADMINS:-}
     ports:
-      - "8700:8600"
+      - "8700:8700"
     depends_on:
       postgres:
         condition: service_healthy
@@ -28,12 +27,12 @@ services:
   frontend:
     build: ./frontend
     environment:
-      - TRUSTGATE_API_URL=http://backend:8600
+      - TRUSTGATE_API_URL=http://backend:8700
       - BUILDER_SESSION_SECRET=${BUILDER_SESSION_SECRET:-change-me}
       - NYQUEST_API=${NYQUEST_API:-https://api.nyquest.ai}
       - SESSION_COOKIE_DOMAIN=${SESSION_COOKIE_DOMAIN:-.zoidlab.ai}
     ports:
-      - "3600:3600"
+      - "3700:3700"
     depends_on:
       - backend
 
